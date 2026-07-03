@@ -2,7 +2,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import serverless from "serverless-http";
 import imageRoutes from "./routes/imageRoutes.js";
 
 dotenv.config();
@@ -32,5 +31,4 @@ if (!process.env.VERCEL && process.env.NODE_ENV !== "test") {
   });
 }
 
-export const handler = serverless(app);
-export default handler;
+export default app;
