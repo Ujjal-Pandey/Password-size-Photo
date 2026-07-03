@@ -1,31 +1,37 @@
 import axios from "axios";
 import sharp from "sharp";
-import fs from "fs";
 
-export const generatePassportSheet = async (imageUrl, outputPath) => {
+export const generatePassportSheet = async (imageInput, outputPath) => {
   const width = 300;
   const height = 400;
 
-  // 1. Download image from Cloudinary
-  const response = await axios({
-    url: imageUrl,
-    responseType: "arraybuffer",
-  });
+  let buffer;
 
-  const buffer = Buffer.from(response.data);
+  if (Buffer.isBuffer(imageInput)) {
+    buffer = imageInput;
+  } else {
+    const response = await axios({
+      url: imageInput,
+      responseType: "arraybuffer",
+    });
 
-  // 2. Process image (IMPORTANT FIX HERE)
+    buffer = Buffer.from(response.data);
+  }
+
+  if (!buffer?.length) {
+    throw new Error("Image content is empty");
+  }
+
   const single = await sharp(buffer)
     .resize(width, height, {
-      fit: "cover",   // fills frame properly (passport style)
-      position: "center"
+      fit: "cover",
+      position: "center",
     })
-    .removeAlpha()    // removes transparency if any
-    .flatten({ background: "#ffffff" }) //  forces white background effect
-    .sharpen()        // makes image clearer
+    .removeAlpha()
+    .flatten({ background: "#ffffff" })
+    .sharpen()
     .toBuffer();
 
-  // 3. Create 12 copies layout
   const images = [];
 
   for (let i = 0; i < 12; i++) {
@@ -36,7 +42,6 @@ export const generatePassportSheet = async (imageUrl, outputPath) => {
     });
   }
 
-  // 4. Create white sheet
   await sharp({
     create: {
       width: width * 3,

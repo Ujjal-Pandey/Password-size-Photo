@@ -7,16 +7,15 @@ import fs from "fs";
 
 export const uploadImage = async (req, res) => {
   try {
-    if (!req.file?.path) {
+    if (!req.file?.buffer?.length) {
       return res.status(400).json({ error: "No image uploaded" });
     }
 
-    const imageUrl = req.file.path;
     const outputDir = os.tmpdir();
     const outputPath = path.join(outputDir, `result-${Date.now()}.jpg`);
 
     await fs.promises.mkdir(outputDir, { recursive: true });
-    await generatePassportSheet(imageUrl, outputPath);
+    await generatePassportSheet(req.file.buffer, outputPath);
 
     const result = await cloudinary.uploader.upload(outputPath, {
       folder: "passport_results",
@@ -24,13 +23,14 @@ export const uploadImage = async (req, res) => {
 
     await fs.promises.unlink(outputPath).catch(() => {});
 
-    res.json({
+    return res.json({
       message: "Processed successfully",
-      original: imageUrl,
+      original: req.file.originalname || "uploaded-image",
       final: result.secure_url,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("Upload failed:", err);
+    return res.status(err.statusCode || 500).json({ error: err.message || "Upload failed" });
   }
 };
 
